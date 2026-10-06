@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import httpx
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from f1_telemetry_bff.application.use_cases.get_session_laps import (
     GetSessionLapsUseCase,
@@ -12,9 +12,8 @@ from f1_telemetry_bff.infrastructure.openf1.repository import (
 )
 
 
-async def get_http_client() -> httpx.AsyncClient:
-    async with httpx.AsyncClient() as client:
-        yield client
+def get_http_client(request: Request) -> httpx.AsyncClient:
+    return request.app.state.http_client
 
 
 def get_get_session_laps_use_case(
