@@ -373,9 +373,7 @@ Uno de los principios más importantes será Dependency Inversion.
 La aplicación no hará esto:
 
 ```python
-use_case = CompareDriversLapsUseCase(
-    OpenF1HttpClient()
-)
+use_case = CompareDriversLapsUseCase(OpenF1HttpClient())
 ```
 
 porque eso acoplaría directamente el caso de uso a Infrastructure.
