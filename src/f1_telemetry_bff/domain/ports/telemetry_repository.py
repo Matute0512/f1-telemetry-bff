@@ -24,3 +24,13 @@ class TelemetryRepository(ABC):
     ) -> list[TelemetryPoint]:
         """Return telemetry points for a specific lap."""
         raise NotImplementedError
+
+    @abstractmethod
+    async def get_telemetry_for_lap(
+        self,
+        session_key: int,
+        driver_number: int,
+        lap: Lap,
+    ) -> list[TelemetryPoint]:
+        """Return telemetry points for a specific lap entity."""
+        raise NotImplementedError

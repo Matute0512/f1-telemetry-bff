@@ -5,7 +5,7 @@ import pytest
 from f1_telemetry_bff.application.use_cases.get_session_laps import (
     GetSessionLapsUseCase,
 )
-from f1_telemetry_bff.domain.entities import Lap
+from f1_telemetry_bff.domain.entities import Lap, TelemetryPoint
 from f1_telemetry_bff.domain.ports import TelemetryRepository
 
 
@@ -30,6 +30,14 @@ class FakeTelemetryRepository(TelemetryRepository):
         driver_number: int,
         lap_number: int,
     ):
+        return []
+
+    async def get_telemetry_for_lap(
+        self,
+        session_key: int,
+        driver_number: int,
+        lap: Lap,
+    ) -> list[TelemetryPoint]:
         return []
 
 

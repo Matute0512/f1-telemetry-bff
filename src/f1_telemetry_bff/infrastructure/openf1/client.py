@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -26,3 +27,41 @@ class OpenF1Client:
         response.raise_for_status()
 
         return response.json()
+
+    async def get_location(
+        self,
+        session_key: int,
+        driver_number: int,
+        date_start: datetime | None = None,
+        date_end: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """Retrieve location samples for a driver in a session."""
+        params: dict[str, Any] = {
+            "session_key": session_key,
+            "driver_number": driver_number,
+        }
+        if date_start is not None:
+            params["date>="] = date_start.isoformat()
+        if date_end is not None:
+            params["date<="] = date_end.isoformat()
+
+        return await self.get("location", params=params)
+
+    async def get_car_data(
+        self,
+        session_key: int,
+        driver_number: int,
+        date_start: datetime | None = None,
+        date_end: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """Retrieve car telemetry samples for a driver in a session."""
+        params: dict[str, Any] = {
+            "session_key": session_key,
+            "driver_number": driver_number,
+        }
+        if date_start is not None:
+            params["date>="] = date_start.isoformat()
+        if date_end is not None:
+            params["date<="] = date_end.isoformat()
+
+        return await self.get("car_data", params=params)
