@@ -1,7 +1,7 @@
 from f1_telemetry_bff.domain.entities import Lap, TelemetryPoint
 from f1_telemetry_bff.domain.ports import TelemetryRepository
 from f1_telemetry_bff.infrastructure.openf1.client import OpenF1Client
-from f1_telemetry_bff.infrastructure.openf1.mappers import map_lap
+from f1_telemetry_bff.infrastructure.openf1.mappers import is_complete, map_lap
 from f1_telemetry_bff.infrastructure.openf1.models import OpenF1Lap
 
 
@@ -26,7 +26,7 @@ class OpenF1TelemetryRepository(TelemetryRepository):
 
         openf1_laps = [OpenF1Lap.model_validate(item) for item in response]
 
-        return [map_lap(lap) for lap in openf1_laps]
+        return [map_lap(lap) for lap in openf1_laps if is_complete(lap)]
 
     async def get_telemetry(
         self,

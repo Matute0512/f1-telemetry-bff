@@ -1,4 +1,4 @@
-from f1_telemetry_bff.application.dto.lap_dto import LapDTO
+from f1_telemetry_bff.application.dto.lap_to_dto import LapDTO
 from f1_telemetry_bff.domain.entities import Lap
 
 
