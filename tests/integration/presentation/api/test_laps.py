@@ -1,6 +1,7 @@
 from collections.abc import Generator
 from datetime import UTC, datetime
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -107,3 +108,10 @@ def test_get_session_laps_invalid_driver_number(client: TestClient) -> None:
 
     assert response.status_code == 422
     assert fake_use_case.executed is False
+
+
+@pytest.mark.integration
+def test_app_lifespan_initializes_shared_http_client(client: TestClient) -> None:
+    assert hasattr(app.state, "http_client")
+    assert isinstance(app.state.http_client, httpx.AsyncClient)
+    assert app.state.http_client.is_closed is False
