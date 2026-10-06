@@ -1,3 +1,5 @@
+from typing import Annotated
+
 import httpx
 from fastapi import Depends
 
@@ -16,7 +18,7 @@ async def get_http_client() -> httpx.AsyncClient:
 
 
 def get_get_session_laps_use_case(
-    client: httpx.AsyncClient = Depends(get_http_client),
+    client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
 ) -> GetSessionLapsUseCase:
     openf1_client = OpenF1Client(client)
     repository = OpenF1TelemetryRepository(openf1_client)

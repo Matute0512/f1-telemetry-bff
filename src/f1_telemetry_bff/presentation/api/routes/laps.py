@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 
 from f1_telemetry_bff.application.dto.mappers import lap_to_dto
@@ -23,7 +25,10 @@ router = APIRouter(
 async def get_session_laps(
     session_key: int,
     driver_number: int,
-    use_case: GetSessionLapsUseCase = Depends(get_get_session_laps_use_case),
+    use_case: Annotated[
+        GetSessionLapsUseCase,
+        Depends(get_get_session_laps_use_case),
+    ],
 ) -> list[LapResponse]:
     laps = await use_case.execute(
         session_key=session_key,
