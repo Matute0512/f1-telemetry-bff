@@ -44,4 +44,3 @@ def test_lap_dto_to_response_preserves_lap_time() -> None:
     response = lap_dto_to_response(dto)
 
     assert response.lap_time == 75.001
-

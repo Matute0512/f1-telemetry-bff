@@ -87,4 +87,3 @@ async def test_get_laps_returns_empty_list_when_all_laps_incomplete() -> None:
     laps = await repository.get_laps(session_key=9158, driver_number=1)
 
     assert laps == []
-

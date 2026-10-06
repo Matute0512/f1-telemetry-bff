@@ -44,4 +44,3 @@ def test_lap_to_dto_preserves_lap_time() -> None:
     dto = lap_to_dto(lap)
 
     assert dto.lap_time == 91.123
-
