@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from f1_telemetry_bff.domain.entities import Lap
 from f1_telemetry_bff.infrastructure.openf1.client import OpenF1Client
 from f1_telemetry_bff.infrastructure.openf1.models import OpenF1Lap
 from f1_telemetry_bff.infrastructure.openf1.repository import (
@@ -87,3 +88,34 @@ async def test_get_laps_returns_empty_list_when_all_laps_incomplete() -> None:
     laps = await repository.get_laps(session_key=9158, driver_number=1)
 
     assert laps == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_laps_filters_incomplete_laps_and_returns_domain_entities() -> None:
+    date_start_2 = datetime(2026, 10, 5, 15, 31, 0, tzinfo=UTC)
+    date_start_4 = datetime(2026, 10, 5, 15, 33, 0, tzinfo=UTC)
+
+    raw = [
+        _make_openf1_lap(lap_number=1, lap_duration=None, date_start=date_start_2),
+        _make_openf1_lap(lap_number=2, lap_duration=82.100, date_start=date_start_2),
+        _make_openf1_lap(lap_number=3, lap_duration=81.500, date_start=None),
+        _make_openf1_lap(lap_number=4, lap_duration=80.900, date_start=date_start_4),
+    ]
+    repository = OpenF1TelemetryRepository(FakeOpenF1Client(raw))
+
+    laps = await repository.get_laps(session_key=9158, driver_number=1)
+
+    assert len(laps) == 2
+    assert all(isinstance(lap, Lap) for lap in laps)
+
+    lap_1, lap_2 = laps
+    assert lap_1.lap_number == 2
+    assert lap_1.driver_number == 1
+    assert lap_1.lap_time == 82.100
+    assert lap_1.date_start == date_start_2
+
+    assert lap_2.lap_number == 4
+    assert lap_2.driver_number == 1
+    assert lap_2.lap_time == 80.900
+    assert lap_2.date_start == date_start_4
