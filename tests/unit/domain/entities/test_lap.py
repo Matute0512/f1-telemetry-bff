@@ -19,7 +19,7 @@ def test_lap_creation() -> None:
         driver_number=1,
         lap_time=82.456,
         date_start=timestamp,
-        telemetry_points=(point,)
+        telemetry_points=(point,),
     )
 
     assert lap.lap_number == 10
