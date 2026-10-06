@@ -3,20 +3,15 @@ from f1_telemetry_bff.infrastructure.openf1.models import OpenF1Lap
 
 
 def map_lap(lap: OpenF1Lap) -> Lap:
-    """Map an OpenF1 lap into a domain Lap."""
-    if lap.lap_duration is None:
-        raise ValueError(
-            f"Lap duration is missing for lap {lap.lap_number} of driver {lap.driver_number}"
-        )
-
-    if lap.date_start is None:
-        raise ValueError(
-            f"Lap start date is missing for lap {lap.lap_number} of driver {lap.driver_number}"
-        )
-
+    """Map a complete OpenF1 lap into a domain Lap."""
     return Lap(
         lap_number=lap.lap_number,
         driver_number=lap.driver_number,
-        lap_time=lap.lap_duration,
-        date_start=lap.date_start,
+        lap_time=lap.lap_duration,  # type: ignore[arg-type]
+        date_start=lap.date_start,  # type: ignore[arg-type]
     )
+
+
+def is_complete(lap: OpenF1Lap) -> bool:
+    """Return True if the lap has all required timing data."""
+    return lap.lap_duration is not None and lap.date_start is not None
