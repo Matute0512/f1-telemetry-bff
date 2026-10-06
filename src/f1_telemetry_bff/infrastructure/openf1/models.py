@@ -10,3 +10,24 @@ class OpenF1Lap(BaseModel):
     lap_number: int
     lap_duration: float | None
     date_start: datetime | None
+
+
+class OpenF1Location(BaseModel):
+    """OpenF1 representation of a location sample."""
+
+    date: datetime
+    driver_number: int
+    x: float
+    y: float
+    z: float
+
+
+class OpenF1CarData(BaseModel):
+    """OpenF1 representation of a car telemetry sample."""
+
+    date: datetime
+    driver_number: int
+    speed: float
+    throttle: float
+    brake: float
+    gear: int

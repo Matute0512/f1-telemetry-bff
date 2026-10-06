@@ -9,3 +9,6 @@ class TelemetryPoint:
     y: float
     z: float
     speed: float
+    throttle: float
+    brake: float
+    gear: int

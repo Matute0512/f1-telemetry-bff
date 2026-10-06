@@ -12,6 +12,9 @@ def test_telemetry_point_creation() -> None:
         y=20.5,
         z=0.0,
         speed=315.0,
+        throttle=100.0,
+        brake=0.0,
+        gear=8,
     )
 
     assert point.timestamp == timestamp
@@ -19,3 +22,6 @@ def test_telemetry_point_creation() -> None:
     assert point.y == 20.5
     assert point.z == 0.0
     assert point.speed == 315.0
+    assert point.throttle == 100.0
+    assert point.brake == 0.0
+    assert point.gear == 8

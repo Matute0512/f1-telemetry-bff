@@ -12,6 +12,9 @@ def test_lap_creation() -> None:
         y=20.0,
         z=0.0,
         speed=300.0,
+        throttle=95.0,
+        brake=0.0,
+        gear=7,
     )
 
     lap = Lap(
