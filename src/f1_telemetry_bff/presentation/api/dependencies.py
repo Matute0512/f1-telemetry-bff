@@ -3,7 +3,8 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, Request
 
-from f1_telemetry_bff.application.use_cases.get_session_laps import (
+from f1_telemetry_bff.application.use_cases import (
+    GetLapTelemetryUseCase,
     GetSessionLapsUseCase,
 )
 from f1_telemetry_bff.infrastructure.openf1.client import OpenF1Client
@@ -23,3 +24,12 @@ def get_get_session_laps_use_case(
     repository = OpenF1TelemetryRepository(openf1_client)
 
     return GetSessionLapsUseCase(repository)
+
+
+def get_get_lap_telemetry_use_case(
+    client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+) -> GetLapTelemetryUseCase:
+    openf1_client = OpenF1Client(client)
+    repository = OpenF1TelemetryRepository(openf1_client)
+
+    return GetLapTelemetryUseCase(repository)
