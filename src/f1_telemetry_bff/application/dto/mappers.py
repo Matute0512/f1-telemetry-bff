@@ -1,4 +1,5 @@
 from f1_telemetry_bff.application.dto.head_to_head import (
+    HeadToHeadLapSelectionDTO,
     HeadToHeadSelectionDTO,
 )
 from f1_telemetry_bff.application.dto.lap_to_dto import LapDTO
@@ -12,6 +13,7 @@ from f1_telemetry_bff.application.dto.telemetry import TelemetryPointDTO
 from f1_telemetry_bff.domain.entities import (
     Circuit,
     Driver,
+    HeadToHeadLapSelection,
     HeadToHeadSelection,
     Lap,
     Session,
@@ -85,4 +87,16 @@ def head_to_head_selection_to_dto(
         session=session_to_dto(selection.session),
         driver_a=driver_to_dto(selection.driver_a),
         driver_b=driver_to_dto(selection.driver_b),
+    )
+
+
+def head_to_head_lap_selection_to_dto(
+    selection: HeadToHeadLapSelection,
+) -> HeadToHeadLapSelectionDTO:
+    return HeadToHeadLapSelectionDTO(
+        session=session_to_dto(selection.session),
+        driver_a=driver_to_dto(selection.driver_a),
+        lap_a=lap_to_dto(selection.lap_a),
+        driver_b=driver_to_dto(selection.driver_b),
+        lap_b=lap_to_dto(selection.lap_b),
     )
