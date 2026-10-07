@@ -125,4 +125,3 @@ def test_head_to_head_telemetry_is_immutable() -> None:
 
     with pytest.raises(AttributeError):
         h2h_telemetry.driver_a = driver_b  # type: ignore[misc]
-

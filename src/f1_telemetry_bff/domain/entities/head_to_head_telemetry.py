@@ -15,4 +15,3 @@ class HeadToHeadTelemetry:
     driver_b: Driver
     lap_b: Lap
     telemetry_b: list[TelemetryPoint]
-
