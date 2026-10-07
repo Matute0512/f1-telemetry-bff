@@ -6,6 +6,9 @@ from f1_telemetry_bff.domain.entities.head_to_head_lap_selection import (
 from f1_telemetry_bff.domain.entities.head_to_head_selection import (
     HeadToHeadSelection,
 )
+from f1_telemetry_bff.domain.entities.head_to_head_telemetry import (
+    HeadToHeadTelemetry,
+)
 from f1_telemetry_bff.domain.entities.lap import Lap
 from f1_telemetry_bff.domain.entities.session import Session
 from f1_telemetry_bff.domain.entities.session_details import SessionDetails
@@ -16,6 +19,7 @@ __all__ = [
     "Driver",
     "HeadToHeadLapSelection",
     "HeadToHeadSelection",
+    "HeadToHeadTelemetry",
     "Lap",
     "Session",
     "SessionDetails",
