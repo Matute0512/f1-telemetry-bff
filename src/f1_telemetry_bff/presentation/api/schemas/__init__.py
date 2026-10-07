@@ -1,4 +1,5 @@
 from f1_telemetry_bff.presentation.api.schemas.head_to_head import (
+    HeadToHeadLapSelectionResponse,
     HeadToHeadSelectionResponse,
 )
 from f1_telemetry_bff.presentation.api.schemas.lap import LapResponse
@@ -16,6 +17,7 @@ from f1_telemetry_bff.presentation.api.schemas.telemetry import (
 __all__ = [
     "CircuitResponse",
     "DriverResponse",
+    "HeadToHeadLapSelectionResponse",
     "HeadToHeadSelectionResponse",
     "LapResponse",
     "LapTelemetryResponse",

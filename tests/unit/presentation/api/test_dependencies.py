@@ -95,3 +95,16 @@ def test_select_head_to_head_drivers_use_case_receives_provided_client() -> None
     use_case = get_select_head_to_head_drivers_use_case(client=mock_client)
 
     assert use_case is not None
+
+
+@pytest.mark.unit
+def test_select_head_to_head_laps_use_case_receives_provided_client() -> None:
+    from f1_telemetry_bff.presentation.api.dependencies import (
+        get_select_head_to_head_laps_use_case,
+    )
+
+    mock_client = MagicMock(spec=httpx.AsyncClient)
+
+    use_case = get_select_head_to_head_laps_use_case(client=mock_client)
+
+    assert use_case is not None
