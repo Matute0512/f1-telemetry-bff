@@ -3,6 +3,7 @@ from f1_telemetry_bff.application.dto import (
     DriverDTO,
     HeadToHeadLapSelectionDTO,
     HeadToHeadSelectionDTO,
+    HeadToHeadTelemetryDTO,
     LapDTO,
     SessionDetailsDTO,
     SessionDTO,
@@ -11,6 +12,7 @@ from f1_telemetry_bff.application.dto import (
 from f1_telemetry_bff.presentation.api.schemas.head_to_head import (
     HeadToHeadLapSelectionResponse,
     HeadToHeadSelectionResponse,
+    HeadToHeadTelemetryResponse,
 )
 from f1_telemetry_bff.presentation.api.schemas.lap import LapResponse
 from f1_telemetry_bff.presentation.api.schemas.session import (
@@ -120,4 +122,18 @@ def head_to_head_lap_selection_dto_to_response(
         lap_a=lap_dto_to_response(selection.lap_a),
         driver_b=driver_dto_to_response(selection.driver_b),
         lap_b=lap_dto_to_response(selection.lap_b),
+    )
+
+
+def head_to_head_telemetry_dto_to_response(
+    dto: HeadToHeadTelemetryDTO,
+) -> HeadToHeadTelemetryResponse:
+    return HeadToHeadTelemetryResponse(
+        session=session_info_dto_to_response(dto.session),
+        driver_a=driver_dto_to_response(dto.driver_a),
+        lap_a=lap_dto_to_response(dto.lap_a),
+        telemetry_a=[telemetry_point_dto_to_response(p) for p in dto.telemetry_a],
+        driver_b=driver_dto_to_response(dto.driver_b),
+        lap_b=lap_dto_to_response(dto.lap_b),
+        telemetry_b=[telemetry_point_dto_to_response(p) for p in dto.telemetry_b],
     )
