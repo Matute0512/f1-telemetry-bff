@@ -1,420 +1,369 @@
 # F1 Telemetry BFF
 
-Backend for Frontend (BFF) para la comparación **Head-to-Head de telemetría y vueltas de Fórmula 1**.
+Backend for Frontend (BFF) desarrollado con **Python 3.12+** y **FastAPI** para la ingesta, normalización, sincronización y consulta de datos de telemetría y vueltas de Fórmula 1 a partir de la API pública de [OpenF1](https://openf1.org/).
 
-El proyecto consume datos públicos de [OpenF1], los procesa, normaliza y sincroniza para ofrecer al frontend una API REST optimizada y orientada específicamente a las necesidades de visualización y comparación de dos pilotos.
+El objetivo central del BFF es desacoplar al frontend de la complejidad inherente de OpenF1 (múltiples endpoints independientes, streams desincronizados, formatos heterogéneos y datos incompletos), ofreciendo una API REST optimizada, tipada y lista para la visualización y análisis de rendimiento de pilotos.
 
 ---
 
-## Objetivo
+## Características actuales
 
-El objetivo principal del backend es abstraer al frontend de la complejidad de consumir y combinar múltiples recursos de telemetría.
+* **Información de Sesión y Circuito:** Consulta de metadatos de sesión (año, tipo, nombre), información del circuito asociado y nómina de pilotos participantes con sus equipos y colores distintivos en un único endpoint consolidado.
+* **Consulta de Vueltas de Piloto:** Obtención de vueltas completadas por un piloto en una sesión determinada, con filtrado automático de vueltas incompletas o sin registro de tiempo/inicio en origen.
+* **Telemetría Real de Vuelta:** Extracción de puntos de telemetría espacial (`x`, `y`, `z`) combinados con datos de dinámica del monoplaza (`speed`, `throttle`, `brake`, `gear`).
+* **Sincronización Temporal de Precisión:** Fusión de flujos independientes de ubicación y dinámica mediante búsqueda del timestamp más cercano con ventana de tolerancia máxima de 500 ms, sin invención ni interpolación de datos artificiales.
+* **Gestión Eficiente de Conexiones:** Cliente HTTP asíncrono (`httpx.AsyncClient`) único y compartido a través del ciclo de vida (`lifespan`) de FastAPI, maximizando la reutilización de conexiones y evitando agotamiento de sockets.
+* **Clean Architecture & SOLID:** Separación estricta de responsabilidades entre Dominio, Aplicación, Infraestructura y Presentación.
 
-El sistema permitirá seleccionar:
+---
 
-* una sesión de Fórmula 1;
-* dos pilotos;
-* vueltas específicas o relevantes;
+## Stack Tecnológico
 
-y obtener datos normalizados para realizar una comparación Head-to-Head.
+Obtenido y fijado en [`pyproject.toml`](./pyproject.toml):
 
-Los datos de telemetría considerados incluyen, entre otros:
-
-* coordenadas `X`;
-* coordenadas `Y`;
-* distancia recorrida;
-* velocidad;
-* acelerador;
-* freno;
-* marcha;
-* timestamp.
-
-La responsabilidad del BFF será transformar los datos externos en un modelo consistente y conveniente para el frontend.
+* **Lenguaje:** Python `>=3.12`
+* **Framework Web:** [FastAPI](https://fastapi.tiangolo.com/) `>=0.142.2`
+* **Modelado y Validación:** [Pydantic v2](https://docs.pydantic.dev/) `>=2.13.5` y [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) `>=2.15.0`
+* **Cliente HTTP Asíncrono:** [HTTPX](https://www.python-httpx.org/) `>=0.28.1`
+* **Servidor ASGI:** [Uvicorn](https://www.uvicorn.org/) `>=0.54.0` (standard)
+* **Gestor de Paquetes y Entorno:** [uv](https://docs.astral.sh/uv/)
+* **Testing:** [pytest](https://docs.pytest.org/) `>=9.1.1` y [pytest-asyncio](https://github.com/pytest-dev/pytest-asyncio) `>=1.4.0`
+* **Linter y Formateador:** [Ruff](https://docs.astral.sh/ruff/) `>=0.16.10`
+* **Fuente de Datos Externa:** [OpenF1 REST API](https://api.openf1.org/v1)
 
 ---
 
 ## Arquitectura
 
-El proyecto utiliza **Clean Architecture**, aplicando principios SOLID para mantener separadas las responsabilidades.
+El proyecto implementa los principios de **Clean Architecture** (Arquitectura Limpia) y diseño guiado por el dominio (DDD conceptual), garantizando que las reglas de negocio sean independientes de librerías externas, frameworks de transporte o detalles de proveedores de datos.
 
-La estructura principal está dividida en:
+```mermaid
+flowchart TD
+    subgraph Presentation["Capas Externas"]
+        P[Presentation / FastAPI API]
+    end
+    subgraph Application["Lógica de Aplicación"]
+        A[Application / Use Cases & DTOs]
+    end
+    subgraph Domain["Núcleo del Negocio"]
+        D[Domain / Entities & Ports]
+    end
+    subgraph Infrastructure["Detalles Técnicos"]
+        I[Infrastructure / OpenF1 Client & Repositories]
+    end
+
+    P -->|usa| A
+    A -->|orquesta| D
+    I -->|implementa puertos| D
+    P -.->|inyecta dependencias| I
+```
+
+### Regla de Dependencia
+Las dependencias apuntan estrictamente hacia el interior. El núcleo (`Domain`) no conoce ni importa `fastapi`, `pydantic`, `httpx` ni ningún modelo de `OpenF1`.
+
+---
+
+## Estructura del Proyecto
 
 ```text
-Domain
-    ↓
-Application
-    ↓
-Infrastructure
-
-Presentation
-    ↓
-Application
-    ↓
-Domain
-```
-
-### Domain
-
-Contiene las reglas y modelos fundamentales del negocio.
-
-No depende de FastAPI, OpenF1, HTTP, Redis ni ningún otro detalle tecnológico.
-
-Incluye entidades como:
-
-* `Driver`
-* `Circuit`
-* `Lap`
-* `TelemetryPoint`
-
-También contiene los puertos/interfaces que necesita el dominio para interactuar con sistemas externos.
-
-### Application
-
-Contiene los casos de uso de la aplicación.
-
-Ejemplos:
-
-* `GetSessionLapsUseCase`
-* `CompareDriversLapsUseCase`
-
-Esta capa coordina el flujo de datos y utiliza las interfaces definidas por Domain.
-
-### Infrastructure
-
-Contiene las implementaciones concretas de las interfaces.
-
-Actualmente se contempla:
-
-* cliente HTTP para OpenF1 mediante `httpx`;
-* caché en memoria;
-* futura integración con Redis;
-* repositorios;
-* mappers entre modelos externos y modelos internos.
-
-### Presentation
-
-Contiene la API HTTP desarrollada con FastAPI.
-
-Incluye:
-
-* routers;
-* endpoints;
-* DTOs;
-* schemas Pydantic;
-* validación;
-* manejo de errores;
-* dependencias de FastAPI.
-
----
-
-## Tecnologías
-
-* Python `3.12+`
-* FastAPI
-* Pydantic v2
-* Uvicorn
-* HTTPX
-* Pytest
-* Ruff
-* uv
-* Git / GitFlow
-* OpenF1 API
-
----
-
-## Requisitos
-
-Antes de comenzar se debe disponer de:
-
-* Python 3.12 o superior.
-* `uv`.
-* Git.
-
-Verificar:
-
-```bash
-python --version
-uv --version
-git --version
+.
+├── .github/
+│   └── workflows/
+│       └── ci.yml               # Pipeline de integración continua
+├── src/
+│   └── f1_telemetry_bff/
+│       ├── config/              # Configuración y settings vía variables de entorno
+│       │   └── settings.py
+│       ├── domain/              # Capa de Dominio (Núcleo)
+│       │   ├── entities/        # Entidades: Session, Circuit, Driver, Lap, TelemetryPoint
+│       │   ├── ports/           # Puertos/Interfaces: SessionRepository, TelemetryRepository, Cache
+│       │   └── value_objects/   # Value objects (reservado)
+│       ├── application/         # Capa de Aplicación
+│       │   ├── dto/             # Data Transfer Objects y mappers internos
+│       │   └── use_cases/       # Casos de uso (GetSessionDetails, GetSessionLaps, GetLapTelemetry)
+│       ├── infrastructure/      # Capa de Infraestructura
+│       │   ├── cache/           # Adaptadores de caché
+│       │   ├── openf1/          # Cliente OpenF1, modelos externos, mappers y sincronizador
+│       │   └── repositories/    # Adaptadores de repositorios
+│       ├── presentation/        # Capa de Presentación
+│       │   └── api/             # FastAPI: dependencias, rutas y esquemas de respuesta
+│       └── main.py              # Fábrica de aplicación FastAPI y lifespan
+├── tests/
+│   ├── unit/                    # Tests unitarios aislados por capa
+│   └── integration/             # Tests de integración de endpoints (con TestClient y Fakes)
+├── pyproject.toml               # Configuración del proyecto, dependencias, ruff y pytest
+├── uv.lock                      # Lockfile reproducible de dependencias
+└── README.md
 ```
 
 ---
 
-## Instalación
+## Instalación y Requisitos
 
-Clonar el repositorio:
+### Requisitos Previos
 
-```bash
-git clone <REPOSITORY_URL>
-cd f1-telemetry-bff
-```
+* **Python 3.12+**
+* **uv** (herramienta recomendada para gestión de entornos y dependencias)
+* **Git**
 
-Instalar las dependencias y sincronizar el entorno:
+### Pasos de Instalación
 
-```bash
-uv sync
-```
+1. Clonar el repositorio:
+   ```bash
+   git clone <URL_DEL_REPOSITORIO>
+   cd f1-telemetry-bff
+   ```
 
-Esto crea o actualiza el entorno virtual `.venv` y utiliza `uv.lock` para reproducir las versiones de las dependencias.
+2. Instalar dependencias y sincronizar el entorno virtual con `uv`:
+   ```bash
+   uv sync
+   ```
 
----
-
-## Variables de entorno
-
-Crear un archivo `.env` a partir del ejemplo:
-
-```bash
-cp .env.example .env
-```
-
-El archivo `.env` es local y no debe versionarse.
-
-Las variables de entorno estarán centralizadas en:
-
-```text
-src/f1_telemetry_bff_bff/config/settings.py
-```
+3. Configurar variables de entorno:
+   Copiar el archivo de ejemplo (si existe) o crear `.env` en la raíz:
+   ```bash
+   cp .env.example .env
+   ```
+   *Configuración por defecto:*
+   ```ini
+   OPENF1_BASE_URL=https://api.openf1.org/v1
+   ENVIRONMENT=development
+   ```
 
 ---
 
 ## Ejecución
 
-Durante desarrollo se recomienda ejecutar FastAPI mediante Uvicorn:
+Para iniciar el servidor de desarrollo local con recarga en caliente:
 
 ```bash
-uv run uvicorn f1_telemetry_bff_bff.main:app --reload
+uv run uvicorn f1_telemetry_bff.main:app --reload
 ```
 
-La aplicación quedará disponible en:
-
-```text
-http://127.0.0.1:8000
-```
-
-La documentación interactiva de FastAPI estará disponible en:
-
-```text
-/docs
-```
-
-y la documentación OpenAPI alternativa en:
-
-```text
-/redoc
-```
+El servicio estará disponible en:
+* **API Base:** `http://127.0.0.1:8000`
+* **Documentación interactiva (Swagger / OpenAPI):** `http://127.0.0.1:8000/docs`
+* **Documentación alternativa (ReDoc):** `http://127.0.0.1:8000/redoc`
 
 ---
 
 ## Testing
 
-Ejecutar todos los tests:
+El conjunto de pruebas utiliza `pytest` y `pytest-asyncio`. Ningún test realiza peticiones de red reales; las dependencias externas se aíslan mediante mocks de transporte (`httpx.MockTransport`) o fakes en memoria.
 
-```bash
+Ejecutar la suite completa de pruebas:
+
+```powershell
 uv run pytest
 ```
 
-Ejecutar únicamente tests unitarios:
+Ejecutar únicamente pruebas unitarias:
 
-```bash
+```powershell
 uv run pytest tests/unit
 ```
 
-Ejecutar únicamente tests de integración:
+Ejecutar únicamente pruebas de integración:
 
-```bash
+```powershell
 uv run pytest tests/integration
 ```
 
-Ejecutar un test específico:
-
-```bash
-uv run pytest tests/unit/path/to/test_file.py
-```
-
 ---
 
-## Linting y formatting
+## Linting y Formateo de Código
 
-Ruff se utiliza como herramienta principal para análisis estático y formatting.
+El proyecto utiliza **Ruff** para validación estática, ordenamiento de imports (`isort`) y formateo de código conforme a las reglas definidas en `pyproject.toml`.
 
-Verificar errores:
+Verificar cumplimiento de reglas de linting:
 
-```bash
+```powershell
 uv run ruff check .
 ```
 
-Corregir automáticamente errores compatibles:
+Verificar formateo de código sin modificar archivos:
 
-```bash
-uv run ruff check . --fix
+```powershell
+uv run ruff format --check .
 ```
 
-Formatear el proyecto:
+Formatear código automáticamente:
 
-```bash
+```powershell
 uv run ruff format .
 ```
 
-Verificar el formatting sin modificar archivos:
+---
 
-```bash
-uv run ruff format . --check
-```
+## Endpoints de la API
+
+### 1. Health Check
+
+* **Método:** `GET`
+* **Ruta:** `/health`
+* **Propósito:** Comprobación de estado y disponibilidad del servicio.
+* **Respuesta Exitosa (200 OK):**
+  ```json
+  {
+    "status": "ok"
+  }
+  ```
 
 ---
 
-## Flujo de desarrollo
+### 2. Detalle de Sesión, Circuito y Pilotos
 
-El proyecto utiliza una estrategia basada en GitFlow.
-
-Ramas principales:
-
-```text
-main
-develop
-```
-
-Las nuevas funcionalidades se desarrollan mediante ramas:
-
-```text
-feature/<nombre>
-```
-
-Ejemplo:
-
-```bash
-git switch develop
-git switch -c feature/new-endpoint
-```
-
-Una vez terminado el trabajo:
-
-```bash
-git add .
-git commit -m "feat: add new endpoint"
-
-git switch develop
-git merge --no-ff feature/new-endpoint
-
-git branch -d feature/new-endpoint
-```
-
----
-
-## Convención de commits
-
-Se recomienda utilizar Conventional Commits.
-
-Ejemplos:
-
-```text
-feat: add session laps endpoint
-fix: handle missing telemetry data
-refactor: extract telemetry mapper
-test: add lap comparison tests
-docs: update architecture documentation
-chore: update dependencies
-```
+* **Método:** `GET`
+* **Ruta:** `/api/v1/sessions/{session_key}`
+* **Propósito:** Obtener la información de una sesión de F1, el circuito en el que se disputó y la lista de pilotos participantes.
+* **Parámetros de Ruta:**
+  * `session_key` *(int)*: Identificador único de la sesión en OpenF1 (ej: `9158`).
+* **Respuesta Exitosa (200 OK):**
+  ```json
+  {
+    "session": {
+      "session_key": 9158,
+      "session_name": "Practice 1",
+      "session_type": "Practice",
+      "year": 2023
+    },
+    "circuit": {
+      "circuit_key": 61,
+      "name": "Marina Bay",
+      "country": "Singapore",
+      "location": "Marina Bay"
+    },
+    "drivers": [
+      {
+        "driver_number": 1,
+        "name": "Max Verstappen",
+        "acronym": "VER",
+        "team_name": "Red Bull Racing",
+        "team_colour": "3671C6"
+      },
+      {
+        "driver_number": 44,
+        "name": "Lewis Hamilton",
+        "acronym": "HAM",
+        "team_name": "Mercedes",
+        "team_colour": "00D2BE"
+      }
+    ]
+  }
+  ```
+* **Errores Posibles:**
+  * `404 Not Found`: Si la sesión no existe en OpenF1.
+  * `422 Unprocessable Entity`: Si `session_key` no es un entero válido.
 
 ---
 
-## Principios de diseño
+### 3. Vueltas de un Piloto en una Sesión
 
-El proyecto sigue los siguientes principios:
-
-### Single Responsibility Principle
-
-Cada componente debe tener una responsabilidad bien definida.
-
-### Open/Closed Principle
-
-Los componentes deben poder extenderse sin modificar innecesariamente el código existente.
-
-### Liskov Substitution Principle
-
-Las implementaciones concretas deben poder sustituir correctamente a las abstracciones que implementan.
-
-### Interface Segregation Principle
-
-Las interfaces deben ser pequeñas y específicas.
-
-### Dependency Inversion Principle
-
-Las capas de alto nivel dependen de abstracciones y no de implementaciones concretas.
-
----
-
-## Clean Architecture
-
-Una regla fundamental del proyecto es que el código interno no depende de detalles externos.
-
-Por ejemplo:
-
-```text
-Domain
-  ↑
-Application
-  ↑
-Presentation
-```
-
-y:
-
-```text
-Infrastructure
-      ↓
-implements
-      ↓
-Domain Ports
-```
-
-Esto permite reemplazar OpenF1, el sistema de caché o incluso FastAPI sin tener que modificar las reglas centrales del negocio.
+* **Método:** `GET`
+* **Ruta:** `/api/v1/sessions/{session_key}/drivers/{driver_number}/laps`
+* **Propósito:** Devolver la lista de vueltas válidas y completadas por un piloto en una sesión. Las vueltas sin duración o sin fecha de inicio son descartadas automáticamente.
+* **Parámetros de Ruta:**
+  * `session_key` *(int)*: Identificador de la sesión.
+  * `driver_number` *(int)*: Número de carrera del piloto (ej: `1`).
+* **Respuesta Exitosa (200 OK):**
+  ```json
+  [
+    {
+      "lap_number": 1,
+      "driver_number": 1,
+      "lap_time": 82.456,
+      "date_start": "2023-09-15T09:35:10Z"
+    },
+    {
+      "lap_number": 2,
+      "driver_number": 1,
+      "lap_time": 81.123,
+      "date_start": "2023-09-15T09:36:32.456Z"
+    }
+  ]
+  ```
+* **Errores Posibles:**
+  * `422 Unprocessable Entity`: Parámetros de ruta con formato inválido.
 
 ---
 
-## Futuras funcionalidades
+### 4. Telemetría Sincronizada de una Vuelta
 
-El backend está diseñado para permitir incorporar progresivamente:
-
-* consulta de sesiones;
-* consulta de pilotos;
-* consulta de circuitos;
-* consulta de vueltas;
-* descarga de telemetría;
-* normalización de telemetría;
-* sincronización espacial;
-* comparación Head-to-Head;
-* cálculo de diferencias de tiempo;
-* cálculo de diferencias de velocidad;
-* análisis de acelerador y freno;
-* caché;
-* Redis;
-* procesamiento concurrente;
-* optimización de requests hacia OpenF1.
+* **Método:** `GET`
+* **Ruta:** `/api/v1/sessions/{session_key}/drivers/{driver_number}/laps/{lap_number}/telemetry`
+* **Propósito:** Obtener la serie temporal sincronizada de puntos de telemetría de una vuelta específica de un piloto.
+* **Parámetros de Ruta:**
+  * `session_key` *(int)*: Identificador de la sesión.
+  * `driver_number` *(int)*: Número del piloto.
+  * `lap_number` *(int)*: Número de vuelta solicitada.
+* **Respuesta Exitosa (200 OK):**
+  ```json
+  {
+    "session_key": 9158,
+    "driver_number": 1,
+    "lap_number": 2,
+    "telemetry_points": [
+      {
+        "timestamp": "2023-09-15T09:36:32.456Z",
+        "x": 105.4,
+        "y": -420.8,
+        "z": 12.1,
+        "speed": 312.5,
+        "throttle": 100.0,
+        "brake": 0.0,
+        "gear": 8
+      },
+      {
+        "timestamp": "2023-09-15T09:36:32.706Z",
+        "x": 120.1,
+        "y": -415.2,
+        "z": 12.0,
+        "speed": 315.0,
+        "throttle": 98.0,
+        "brake": 0.0,
+        "gear": 8
+      }
+    ]
+  }
+  ```
+* **Errores Posibles:**
+  * `422 Unprocessable Entity`: Parámetros de ruta no numéricos.
 
 ---
 
-## Estado del proyecto
+## Integración con OpenF1
 
-El proyecto se encuentra actualmente en la fase de **Project Setup**.
+El BFF utiliza los siguientes recursos de OpenF1 (`https://api.openf1.org/v1`):
+* `/sessions`: Datos maestros de eventos, tipo de sesión y circuito.
+* `/drivers`: Nómina de competidores, acrónimos, escuderías y colores.
+* `/laps`: Registro de vueltas con marcas temporales y duraciones.
+* `/location`: Coordenadas espaciales tridimensionales de los monoplazas muestreadas a ~3.5 Hz.
+* `/car_data`: Registro de velocidad, acelerador, frenado y marcha a ~3.5 Hz.
 
-Esta fase establece:
-
-* estructura del proyecto;
-* Clean Architecture;
-* configuración de `uv`;
-* FastAPI;
-* Pydantic;
-* HTTPX;
-* Pytest;
-* Ruff;
-* GitFlow;
-* documentación arquitectónica.
-
-La lógica de negocio de comparación de telemetría será implementada en etapas posteriores.
+Toda la comunicación externa está aislada en la capa de `Infrastructure` a través de [`OpenF1Client`](src/f1_telemetry_bff/infrastructure/openf1/client.py). Los modelos de validación Pydantic para OpenF1 residen en `infrastructure/openf1/models.py`, asegurando que cambios en la API externa no afecten al dominio de la aplicación.
 
 ---
 
-## Licencia
+## Integración Continua (CI)
 
-Este proyecto se distribuye bajo licencia MIT.
+El proyecto cuenta con un workflow automatizado en GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) que se ejecuta en:
+* Cada evento `push` a cualquier rama.
+* Cada `pull_request` con destino a `develop` o `main`.
+
+El pipeline ejecuta en un entorno Ubuntu con Python 3.12:
+1. Instalación y configuración de `uv` con caché habilitada.
+2. Instalación determinista de dependencias mediante `uv sync --locked`.
+3. Ejecución de la suite completa de pruebas: `uv run pytest`.
+4. Análisis estático con linter: `uv run ruff check .`.
+5. Comprobación de formato: `uv run ruff format --check .`.
+
+Cualquier falla en las etapas anteriores bloquea la integración.
+
+---
+
+## Flujo de Trabajo (GitFlow)
+
+El desarrollo sigue el estándar GitFlow:
+* **`main`**: Rama productiva y estable.
+* **`develop`**: Rama de integración continua de features.
+* **`feature/*`**: Ramas de corta duración para funcionalidades específicas, que nacen de `develop` y se integran mediante Pull Request con revisión y validaciones de CI aprobadas.
