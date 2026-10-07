@@ -5,11 +5,15 @@ from fastapi import Depends, Request
 
 from f1_telemetry_bff.application.use_cases import (
     GetLapTelemetryUseCase,
+    GetSessionDetailsUseCase,
     GetSessionLapsUseCase,
 )
 from f1_telemetry_bff.infrastructure.openf1.client import OpenF1Client
 from f1_telemetry_bff.infrastructure.openf1.repository import (
     OpenF1TelemetryRepository,
+)
+from f1_telemetry_bff.infrastructure.openf1.session_repository import (
+    OpenF1SessionRepository,
 )
 
 
@@ -33,3 +37,12 @@ def get_get_lap_telemetry_use_case(
     repository = OpenF1TelemetryRepository(openf1_client)
 
     return GetLapTelemetryUseCase(repository)
+
+
+def get_get_session_details_use_case(
+    client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+) -> GetSessionDetailsUseCase:
+    openf1_client = OpenF1Client(client)
+    repository = OpenF1SessionRepository(openf1_client)
+
+    return GetSessionDetailsUseCase(repository)

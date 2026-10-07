@@ -31,3 +31,28 @@ class OpenF1CarData(BaseModel):
     throttle: float
     brake: float
     gear: int
+
+
+class OpenF1Session(BaseModel):
+    """OpenF1 representation of a session."""
+
+    session_key: int
+    session_name: str
+    session_type: str
+    year: int
+    circuit_key: int
+    circuit_short_name: str | None = None
+    country_name: str | None = None
+    location: str | None = None
+
+
+class OpenF1Driver(BaseModel):
+    """OpenF1 representation of a driver."""
+
+    session_key: int | None = None
+    driver_number: int
+    full_name: str | None = None
+    broadcast_name: str | None = None
+    name_acronym: str | None = None
+    team_name: str | None = None
+    team_colour: str | None = None

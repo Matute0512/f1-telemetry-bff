@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from f1_telemetry_bff.presentation.api.routes import laps_router
+from f1_telemetry_bff.presentation.api.routes import laps_router, sessions_router
 
 
 @asynccontextmanager
@@ -22,6 +22,7 @@ app = FastAPI(
 )
 
 app.include_router(laps_router)
+app.include_router(sessions_router)
 
 
 @app.get("/health", tags=["Health"])
