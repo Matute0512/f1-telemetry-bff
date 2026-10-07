@@ -1,4 +1,7 @@
 from f1_telemetry_bff.application.dto.head_to_head import (
+    ComparisonPointDTO,
+    HeadToHeadComparisonDTO,
+    HeadToHeadComparisonSummaryDTO,
     HeadToHeadLapSelectionDTO,
     HeadToHeadSelectionDTO,
     HeadToHeadTelemetryDTO,
@@ -6,7 +9,9 @@ from f1_telemetry_bff.application.dto.head_to_head import (
 from f1_telemetry_bff.application.dto.lap_to_dto import LapDTO
 from f1_telemetry_bff.application.dto.mappers import (
     circuit_to_dto,
+    comparison_point_to_dto,
     driver_to_dto,
+    head_to_head_comparison_to_dto,
     head_to_head_lap_selection_to_dto,
     head_to_head_selection_to_dto,
     head_to_head_telemetry_to_dto,
@@ -25,7 +30,10 @@ from f1_telemetry_bff.application.dto.telemetry import TelemetryPointDTO
 
 __all__ = [
     "CircuitDTO",
+    "ComparisonPointDTO",
     "DriverDTO",
+    "HeadToHeadComparisonDTO",
+    "HeadToHeadComparisonSummaryDTO",
     "HeadToHeadLapSelectionDTO",
     "HeadToHeadSelectionDTO",
     "HeadToHeadTelemetryDTO",
@@ -34,7 +42,9 @@ __all__ = [
     "SessionDetailsDTO",
     "TelemetryPointDTO",
     "circuit_to_dto",
+    "comparison_point_to_dto",
     "driver_to_dto",
+    "head_to_head_comparison_to_dto",
     "head_to_head_lap_selection_to_dto",
     "head_to_head_selection_to_dto",
     "head_to_head_telemetry_to_dto",

@@ -1,4 +1,7 @@
 from f1_telemetry_bff.application.dto.head_to_head import (
+    ComparisonPointDTO,
+    HeadToHeadComparisonDTO,
+    HeadToHeadComparisonSummaryDTO,
     HeadToHeadLapSelectionDTO,
     HeadToHeadSelectionDTO,
     HeadToHeadTelemetryDTO,
@@ -14,6 +17,7 @@ from f1_telemetry_bff.application.dto.telemetry import TelemetryPointDTO
 from f1_telemetry_bff.domain.entities import (
     Circuit,
     Driver,
+    HeadToHeadComparison,
     HeadToHeadLapSelection,
     HeadToHeadSelection,
     HeadToHeadTelemetry,
@@ -22,6 +26,7 @@ from f1_telemetry_bff.domain.entities import (
     SessionDetails,
     TelemetryPoint,
 )
+from f1_telemetry_bff.domain.value_objects.comparison_point import ComparisonPoint
 
 
 def lap_to_dto(lap: Lap) -> LapDTO:
@@ -115,4 +120,42 @@ def head_to_head_telemetry_to_dto(
         driver_b=driver_to_dto(h2h.driver_b),
         lap_b=lap_to_dto(h2h.lap_b),
         telemetry_b=[telemetry_point_to_dto(p) for p in h2h.telemetry_b],
+    )
+
+
+def comparison_point_to_dto(point: ComparisonPoint) -> ComparisonPointDTO:
+    return ComparisonPointDTO(
+        distance=point.distance,
+        elapsed_time_a=point.elapsed_time_a,
+        elapsed_time_b=point.elapsed_time_b,
+        time_delta=point.time_delta,
+        speed_a=point.speed_a,
+        speed_b=point.speed_b,
+        speed_delta=point.speed_delta,
+        throttle_a=point.throttle_a,
+        throttle_b=point.throttle_b,
+        throttle_delta=point.throttle_delta,
+        brake_a=point.brake_a,
+        brake_b=point.brake_b,
+        brake_delta=point.brake_delta,
+        gear_a=point.gear_a,
+        gear_b=point.gear_b,
+    )
+
+
+def head_to_head_comparison_to_dto(
+    comparison: HeadToHeadComparison,
+) -> HeadToHeadComparisonDTO:
+    total_time_delta = comparison.points[-1].time_delta if comparison.points else 0.0
+    return HeadToHeadComparisonDTO(
+        session=session_to_dto(comparison.session),
+        driver_a=driver_to_dto(comparison.driver_a),
+        lap_a=lap_to_dto(comparison.lap_a),
+        driver_b=driver_to_dto(comparison.driver_b),
+        lap_b=lap_to_dto(comparison.lap_b),
+        summary=HeadToHeadComparisonSummaryDTO(
+            total_distance=comparison.total_distance,
+            total_time_delta=total_time_delta,
+        ),
+        points=[comparison_point_to_dto(p) for p in comparison.points],
     )

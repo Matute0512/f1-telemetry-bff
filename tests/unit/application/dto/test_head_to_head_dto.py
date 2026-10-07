@@ -190,3 +190,91 @@ def test_head_to_head_telemetry_to_dto_maps_all_fields() -> None:
     assert dto.lap_b.lap_number == 12
     assert len(dto.telemetry_b) == 1
     assert dto.telemetry_b[0].speed == 305.0
+
+
+def test_head_to_head_comparison_to_dto_maps_all_fields() -> None:
+    from datetime import UTC, datetime
+
+    from f1_telemetry_bff.application.dto.mappers import (
+        head_to_head_comparison_to_dto,
+    )
+    from f1_telemetry_bff.domain.entities import (
+        Driver,
+        HeadToHeadComparison,
+        Lap,
+        Session,
+    )
+    from f1_telemetry_bff.domain.value_objects import ComparisonPoint
+
+    session = Session(
+        session_key=9158,
+        session_name="Practice 1",
+        session_type="Practice",
+        year=2023,
+    )
+    driver_a = Driver(
+        driver_number=1,
+        name="Max Verstappen",
+        acronym="VER",
+        team_name="Red Bull Racing",
+        team_colour="3671C6",
+    )
+    driver_b = Driver(
+        driver_number=44,
+        name="Lewis Hamilton",
+        acronym="HAM",
+        team_name="Mercedes",
+        team_colour="00D2BE",
+    )
+    lap_a = Lap(
+        lap_number=10,
+        driver_number=1,
+        lap_time=92.123,
+        date_start=datetime(2023, 9, 15, 10, 0, 0, tzinfo=UTC),
+    )
+    lap_b = Lap(
+        lap_number=12,
+        driver_number=44,
+        lap_time=91.876,
+        date_start=datetime(2023, 9, 15, 10, 5, 0, tzinfo=UTC),
+    )
+    point = ComparisonPoint(
+        distance=10.0,
+        elapsed_time_a=1.0,
+        elapsed_time_b=1.2,
+        time_delta=-0.2,
+        speed_a=300.0,
+        speed_b=295.0,
+        speed_delta=5.0,
+        throttle_a=100.0,
+        throttle_b=90.0,
+        throttle_delta=10.0,
+        brake_a=0.0,
+        brake_b=0.0,
+        brake_delta=0.0,
+        gear_a=7,
+        gear_b=7,
+    )
+    comparison = HeadToHeadComparison(
+        session=session,
+        driver_a=driver_a,
+        lap_a=lap_a,
+        driver_b=driver_b,
+        lap_b=lap_b,
+        total_distance=10.0,
+        points=[point],
+    )
+
+    dto = head_to_head_comparison_to_dto(comparison)
+
+    assert dto.session.session_key == 9158
+    assert dto.driver_a.driver_number == 1
+    assert dto.lap_a.lap_number == 10
+    assert dto.driver_b.driver_number == 44
+    assert dto.lap_b.lap_number == 12
+    assert dto.summary.total_distance == 10.0
+    assert dto.summary.total_time_delta == -0.2
+    assert len(dto.points) == 1
+    assert dto.points[0].distance == 10.0
+    assert dto.points[0].speed_delta == 5.0
+    assert dto.points[0].time_delta == -0.2

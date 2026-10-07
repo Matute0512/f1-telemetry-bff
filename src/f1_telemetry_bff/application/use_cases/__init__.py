@@ -1,3 +1,6 @@
+from f1_telemetry_bff.application.use_cases.get_head_to_head_comparison import (
+    GetHeadToHeadComparisonUseCase,
+)
 from f1_telemetry_bff.application.use_cases.get_head_to_head_telemetry import (
     GetHeadToHeadTelemetryUseCase,
 )
@@ -18,6 +21,7 @@ from f1_telemetry_bff.application.use_cases.select_head_to_head_laps import (
 )
 
 __all__ = [
+    "GetHeadToHeadComparisonUseCase",
     "GetHeadToHeadTelemetryUseCase",
     "GetLapTelemetryUseCase",
     "GetSessionDetailsUseCase",
