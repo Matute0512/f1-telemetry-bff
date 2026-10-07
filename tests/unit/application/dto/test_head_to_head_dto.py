@@ -43,4 +43,3 @@ def test_head_to_head_selection_to_dto_maps_all_fields() -> None:
     assert dto.driver_a.name == "Max Verstappen"
     assert dto.driver_b.driver_number == 44
     assert dto.driver_b.name == "Lewis Hamilton"
-

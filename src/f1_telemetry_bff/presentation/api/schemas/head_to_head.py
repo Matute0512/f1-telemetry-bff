@@ -10,4 +10,3 @@ class HeadToHeadSelectionResponse(BaseModel):
     session: SessionInfoResponse
     driver_a: DriverResponse
     driver_b: DriverResponse
-

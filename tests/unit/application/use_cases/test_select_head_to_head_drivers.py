@@ -150,4 +150,3 @@ async def test_select_head_to_head_drivers_driver_b_not_found_raises_error() -> 
 
     assert exc_info.value.driver_number == 99
     assert exc_info.value.session_key == 9158
-

@@ -36,4 +36,3 @@ def test_head_to_head_selection_creation() -> None:
     assert selection.session == session
     assert selection.driver_a == driver_a
     assert selection.driver_b == driver_b
-

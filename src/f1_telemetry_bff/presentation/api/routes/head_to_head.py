@@ -78,4 +78,3 @@ async def select_head_to_head_drivers(
 
     dto = head_to_head_selection_to_dto(selection)
     return head_to_head_selection_dto_to_response(dto)
-

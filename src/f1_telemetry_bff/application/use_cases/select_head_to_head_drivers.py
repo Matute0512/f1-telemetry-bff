@@ -53,4 +53,3 @@ class SelectHeadToHeadDriversUseCase:
             driver_a=driver_a,
             driver_b=driver_b,
         )
-

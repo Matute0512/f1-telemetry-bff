@@ -8,4 +8,3 @@ class HeadToHeadSelectionDTO:
     session: SessionDTO
     driver_a: DriverDTO
     driver_b: DriverDTO
-

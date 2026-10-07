@@ -9,4 +9,3 @@ class HeadToHeadSelection:
     session: Session
     driver_a: Driver
     driver_b: Driver
-

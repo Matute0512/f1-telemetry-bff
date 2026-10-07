@@ -40,4 +40,3 @@ def test_head_to_head_selection_dto_to_response_maps_all_fields() -> None:
     assert response.driver_a.name == "Max Verstappen"
     assert response.driver_b.driver_number == 44
     assert response.driver_b.name == "Lewis Hamilton"
-
