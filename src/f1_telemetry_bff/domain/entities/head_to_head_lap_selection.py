@@ -12,4 +12,3 @@ class HeadToHeadLapSelection:
     lap_a: Lap
     driver_b: Driver
     lap_b: Lap
-

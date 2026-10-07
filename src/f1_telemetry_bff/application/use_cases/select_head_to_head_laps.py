@@ -98,4 +98,3 @@ class SelectHeadToHeadLapsUseCase:
             driver_b=driver_b,
             lap_b=lap_b,
         )
-

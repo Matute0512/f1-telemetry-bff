@@ -101,4 +101,3 @@ def test_head_to_head_lap_selection_is_immutable() -> None:
 
     with pytest.raises(AttributeError):
         selection.lap_a = lap_b  # type: ignore[misc]
-
