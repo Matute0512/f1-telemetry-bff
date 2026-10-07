@@ -7,6 +7,7 @@ from f1_telemetry_bff.application.use_cases import (
     GetLapTelemetryUseCase,
     GetSessionDetailsUseCase,
     GetSessionLapsUseCase,
+    SelectHeadToHeadDriversUseCase,
 )
 from f1_telemetry_bff.infrastructure.openf1.client import OpenF1Client
 from f1_telemetry_bff.infrastructure.openf1.repository import (
@@ -46,3 +47,12 @@ def get_get_session_details_use_case(
     repository = OpenF1SessionRepository(openf1_client)
 
     return GetSessionDetailsUseCase(repository)
+
+
+def get_select_head_to_head_drivers_use_case(
+    client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+) -> SelectHeadToHeadDriversUseCase:
+    openf1_client = OpenF1Client(client)
+    repository = OpenF1SessionRepository(openf1_client)
+
+    return SelectHeadToHeadDriversUseCase(repository)

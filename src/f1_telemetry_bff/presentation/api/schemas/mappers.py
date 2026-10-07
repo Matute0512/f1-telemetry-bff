@@ -1,10 +1,14 @@
 from f1_telemetry_bff.application.dto import (
     CircuitDTO,
     DriverDTO,
+    HeadToHeadSelectionDTO,
     LapDTO,
     SessionDetailsDTO,
     SessionDTO,
     TelemetryPointDTO,
+)
+from f1_telemetry_bff.presentation.api.schemas.head_to_head import (
+    HeadToHeadSelectionResponse,
 )
 from f1_telemetry_bff.presentation.api.schemas.lap import LapResponse
 from f1_telemetry_bff.presentation.api.schemas.session import (
@@ -92,4 +96,14 @@ def session_details_dto_to_response(
         session=session_info_dto_to_response(details.session),
         circuit=circuit_dto_to_response(details.circuit),
         drivers=[driver_dto_to_response(d) for d in details.drivers],
+    )
+
+
+def head_to_head_selection_dto_to_response(
+    selection: HeadToHeadSelectionDTO,
+) -> HeadToHeadSelectionResponse:
+    return HeadToHeadSelectionResponse(
+        session=session_info_dto_to_response(selection.session),
+        driver_a=driver_dto_to_response(selection.driver_a),
+        driver_b=driver_dto_to_response(selection.driver_b),
     )
