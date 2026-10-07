@@ -162,3 +162,46 @@ async def test_get_raises_http_status_error_on_server_failure() -> None:
     async with http_client:
         with pytest.raises(httpx.HTTPStatusError):
             await client.get("location")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_sessions_with_and_without_session_key() -> None:
+    captured_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured_requests.append(request)
+        return httpx.Response(200, json=[{"session_key": 9158, "session_name": "Practice 1"}])
+
+    client, http_client = _make_mock_client(handler)
+
+    async with http_client:
+        res1 = await client.get_sessions(session_key=9158)
+        res2 = await client.get_sessions()
+
+    assert len(captured_requests) == 2
+    assert captured_requests[0].url.path.endswith("/sessions")
+    assert captured_requests[0].url.params["session_key"] == "9158"
+    assert "session_key" not in captured_requests[1].url.params
+    assert res1 == [{"session_key": 9158, "session_name": "Practice 1"}]
+    assert res2 == [{"session_key": 9158, "session_name": "Practice 1"}]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_drivers_sends_session_key() -> None:
+    captured_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured_requests.append(request)
+        return httpx.Response(200, json=[{"driver_number": 1, "session_key": 9158}])
+
+    client, http_client = _make_mock_client(handler)
+
+    async with http_client:
+        res = await client.get_drivers(session_key=9158)
+
+    assert len(captured_requests) == 1
+    assert captured_requests[0].url.path.endswith("/drivers")
+    assert captured_requests[0].url.params["session_key"] == "9158"
+    assert res == [{"driver_number": 1, "session_key": 9158}]

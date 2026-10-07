@@ -65,3 +65,24 @@ class OpenF1Client:
             params["date<="] = date_end.isoformat()
 
         return await self.get("car_data", params=params)
+
+    async def get_sessions(
+        self,
+        session_key: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Retrieve sessions from OpenF1."""
+        params: dict[str, Any] = {}
+        if session_key is not None:
+            params["session_key"] = session_key
+
+        return await self.get("sessions", params=params if params else None)
+
+    async def get_drivers(
+        self,
+        session_key: int,
+    ) -> list[dict[str, Any]]:
+        """Retrieve drivers for a session from OpenF1."""
+        params: dict[str, Any] = {
+            "session_key": session_key,
+        }
+        return await self.get("drivers", params=params)
