@@ -10,6 +10,7 @@ from f1_telemetry_bff.application.exceptions import (
 )
 from f1_telemetry_bff.domain.entities import (
     Driver,
+    HeadToHeadComparison,
     HeadToHeadLapSelection,
     HeadToHeadSelection,
     HeadToHeadTelemetry,
@@ -17,8 +18,10 @@ from f1_telemetry_bff.domain.entities import (
     Session,
     TelemetryPoint,
 )
+from f1_telemetry_bff.domain.value_objects import ComparisonPoint
 from f1_telemetry_bff.main import app
 from f1_telemetry_bff.presentation.api.dependencies import (
+    get_get_head_to_head_comparison_use_case,
     get_get_head_to_head_telemetry_use_case,
     get_select_head_to_head_drivers_use_case,
     get_select_head_to_head_laps_use_case,
@@ -836,5 +839,253 @@ def test_get_head_to_head_telemetry_invalid_query_param_type_returns_422(
 ) -> None:
     response = client.get(
         "/api/v1/sessions/9158/head-to-head/telemetry?driver_a=1&lap_a=abc&driver_b=44&lap_b=12"
+    )
+    assert response.status_code == 422
+
+
+class FakeGetHeadToHeadComparisonUseCase:
+    """Fake use case for Head-to-Head comparison retrieval."""
+
+    def __init__(
+        self,
+        comparison: HeadToHeadComparison | None = None,
+        exception_to_raise: Exception | None = None,
+    ) -> None:
+        self.comparison = comparison
+        self.exception_to_raise = exception_to_raise
+        self.executed = False
+        self.received_session_key: int | None = None
+        self.received_driver_a: int | None = None
+        self.received_lap_a: int | None = None
+        self.received_driver_b: int | None = None
+        self.received_lap_b: int | None = None
+
+    async def execute(
+        self,
+        session_key: int,
+        driver_a_number: int,
+        lap_a_number: int,
+        driver_b_number: int,
+        lap_b_number: int,
+    ) -> HeadToHeadComparison:
+        self.executed = True
+        self.received_session_key = session_key
+        self.received_driver_a = driver_a_number
+        self.received_lap_a = lap_a_number
+        self.received_driver_b = driver_b_number
+        self.received_lap_b = lap_b_number
+        if self.exception_to_raise:
+            raise self.exception_to_raise
+        assert self.comparison is not None
+        return self.comparison
+
+
+@pytest.mark.integration
+def test_get_head_to_head_comparison_success(client: TestClient) -> None:
+    from datetime import UTC, datetime
+
+    session = Session(
+        session_key=9158,
+        session_name="Practice 1",
+        session_type="Practice",
+        year=2023,
+    )
+    driver_a = Driver(
+        driver_number=1,
+        name="Max Verstappen",
+        acronym="VER",
+        team_name="Red Bull Racing",
+        team_colour="3671C6",
+    )
+    driver_b = Driver(
+        driver_number=44,
+        name="Lewis Hamilton",
+        acronym="HAM",
+        team_name="Mercedes",
+        team_colour="00D2BE",
+    )
+    lap_a = Lap(
+        lap_number=10,
+        driver_number=1,
+        lap_time=92.123,
+        date_start=datetime(2023, 9, 15, 10, 0, 0, tzinfo=UTC),
+    )
+    lap_b = Lap(
+        lap_number=12,
+        driver_number=44,
+        lap_time=91.876,
+        date_start=datetime(2023, 9, 15, 10, 5, 0, tzinfo=UTC),
+    )
+    point = ComparisonPoint(
+        distance=10.0,
+        elapsed_time_a=1.0,
+        elapsed_time_b=1.2,
+        time_delta=-0.2,
+        speed_a=300.0,
+        speed_b=295.0,
+        speed_delta=5.0,
+        throttle_a=100.0,
+        throttle_b=90.0,
+        throttle_delta=10.0,
+        brake_a=0.0,
+        brake_b=0.0,
+        brake_delta=0.0,
+        gear_a=7,
+        gear_b=7,
+    )
+    comparison = HeadToHeadComparison(
+        session=session,
+        driver_a=driver_a,
+        lap_a=lap_a,
+        driver_b=driver_b,
+        lap_b=lap_b,
+        total_distance=10.0,
+        points=[point],
+    )
+
+    fake_use_case = FakeGetHeadToHeadComparisonUseCase(comparison=comparison)
+    app.dependency_overrides[get_get_head_to_head_comparison_use_case] = lambda: fake_use_case
+
+    response = client.get(
+        "/api/v1/sessions/9158/head-to-head/comparison?driver_a=1&lap_a=10&driver_b=44&lap_b=12"
+    )
+
+    assert response.status_code == 200
+    assert fake_use_case.executed is True
+    assert fake_use_case.received_session_key == 9158
+    assert fake_use_case.received_driver_a == 1
+    assert fake_use_case.received_lap_a == 10
+    assert fake_use_case.received_driver_b == 44
+    assert fake_use_case.received_lap_b == 12
+
+    data = response.json()
+    assert data["session"]["session_key"] == 9158
+    assert data["driver_a"]["driver_number"] == 1
+    assert data["lap_a"]["lap_number"] == 10
+    assert data["driver_b"]["driver_number"] == 44
+    assert data["lap_b"]["lap_number"] == 12
+    assert data["summary"]["total_distance"] == 10.0
+    assert data["summary"]["total_time_delta"] == -0.2
+    assert len(data["points"]) == 1
+    assert data["points"][0]["distance"] == 10.0
+    assert data["points"][0]["speed_delta"] == 5.0
+    assert data["points"][0]["gear_a"] == 7
+    assert data["points"][0]["gear_b"] == 7
+
+
+@pytest.mark.integration
+def test_get_head_to_head_comparison_same_driver_returns_400(
+    client: TestClient,
+) -> None:
+    fake_use_case = FakeGetHeadToHeadComparisonUseCase(
+        exception_to_raise=SameDriverSelectedError(driver_number=1)
+    )
+    app.dependency_overrides[get_get_head_to_head_comparison_use_case] = lambda: fake_use_case
+
+    response = client.get(
+        "/api/v1/sessions/9158/head-to-head/comparison?driver_a=1&lap_a=10&driver_b=1&lap_b=12"
+    )
+
+    assert response.status_code == 400
+    assert fake_use_case.executed is True
+    assert response.json()["detail"] == "Driver A and Driver B cannot be the same driver (1)"
+
+
+@pytest.mark.integration
+def test_get_head_to_head_comparison_session_not_found_returns_404(
+    client: TestClient,
+) -> None:
+    fake_use_case = FakeGetHeadToHeadComparisonUseCase(
+        exception_to_raise=SessionNotFoundError(session_key=9999)
+    )
+    app.dependency_overrides[get_get_head_to_head_comparison_use_case] = lambda: fake_use_case
+
+    response = client.get(
+        "/api/v1/sessions/9999/head-to-head/comparison?driver_a=1&lap_a=10&driver_b=44&lap_b=12"
+    )
+
+    assert response.status_code == 404
+    assert fake_use_case.executed is True
+    assert response.json()["detail"] == "Session with key 9999 not found"
+
+
+@pytest.mark.integration
+def test_get_head_to_head_comparison_driver_not_found_returns_404(
+    client: TestClient,
+) -> None:
+    fake_use_case = FakeGetHeadToHeadComparisonUseCase(
+        exception_to_raise=DriverNotFoundError(driver_number=99, session_key=9158)
+    )
+    app.dependency_overrides[get_get_head_to_head_comparison_use_case] = lambda: fake_use_case
+
+    response = client.get(
+        "/api/v1/sessions/9158/head-to-head/comparison?driver_a=99&lap_a=10&driver_b=44&lap_b=12"
+    )
+
+    assert response.status_code == 404
+    assert fake_use_case.executed is True
+    assert response.json()["detail"] == "Driver 99 not found in session 9158"
+
+
+@pytest.mark.integration
+def test_get_head_to_head_comparison_lap_not_found_returns_404(
+    client: TestClient,
+) -> None:
+    from f1_telemetry_bff.application.exceptions import LapNotFoundError
+
+    fake_use_case = FakeGetHeadToHeadComparisonUseCase(
+        exception_to_raise=LapNotFoundError(session_key=9158, driver_number=44, lap_number=99)
+    )
+    app.dependency_overrides[get_get_head_to_head_comparison_use_case] = lambda: fake_use_case
+
+    response = client.get(
+        "/api/v1/sessions/9158/head-to-head/comparison?driver_a=1&lap_a=10&driver_b=44&lap_b=99"
+    )
+
+    assert response.status_code == 404
+    assert fake_use_case.executed is True
+    assert (
+        response.json()["detail"] == "Lap 99 not found or incomplete for driver 44 in session 9158"
+    )
+
+
+@pytest.mark.integration
+def test_get_head_to_head_comparison_insufficient_telemetry_returns_422(
+    client: TestClient,
+) -> None:
+    from f1_telemetry_bff.application.exceptions import InsufficientTelemetryDataError
+
+    fake_use_case = FakeGetHeadToHeadComparisonUseCase(
+        exception_to_raise=InsufficientTelemetryDataError(
+            "At least 2 telemetry points are required, got 0"
+        )
+    )
+    app.dependency_overrides[get_get_head_to_head_comparison_use_case] = lambda: fake_use_case
+
+    response = client.get(
+        "/api/v1/sessions/9158/head-to-head/comparison?driver_a=1&lap_a=10&driver_b=44&lap_b=12"
+    )
+
+    assert response.status_code == 422
+    assert fake_use_case.executed is True
+    assert response.json()["detail"] == "At least 2 telemetry points are required, got 0"
+
+
+@pytest.mark.integration
+def test_get_head_to_head_comparison_missing_query_param_returns_422(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/api/v1/sessions/9158/head-to-head/comparison?driver_a=1&lap_a=10&driver_b=44"
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.integration
+def test_get_head_to_head_comparison_invalid_query_param_type_returns_422(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/api/v1/sessions/9158/head-to-head/comparison?driver_a=1&lap_a=abc&driver_b=44&lap_b=12"
     )
     assert response.status_code == 422

@@ -37,3 +37,10 @@ class LapNotFoundError(ApplicationError):
         super().__init__(
             f"Lap {lap_number} not found or incomplete for driver {driver_number} in session {session_key}"
         )
+
+
+class InsufficientTelemetryDataError(ApplicationError):
+    """Raised when telemetry data is empty, insufficient, or has zero distance for comparison."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

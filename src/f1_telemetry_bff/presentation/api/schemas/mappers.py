@@ -1,6 +1,8 @@
 from f1_telemetry_bff.application.dto import (
     CircuitDTO,
+    ComparisonPointDTO,
     DriverDTO,
+    HeadToHeadComparisonDTO,
     HeadToHeadLapSelectionDTO,
     HeadToHeadSelectionDTO,
     HeadToHeadTelemetryDTO,
@@ -10,6 +12,9 @@ from f1_telemetry_bff.application.dto import (
     TelemetryPointDTO,
 )
 from f1_telemetry_bff.presentation.api.schemas.head_to_head import (
+    ComparisonPointResponse,
+    HeadToHeadComparisonResponse,
+    HeadToHeadComparisonSummaryResponse,
     HeadToHeadLapSelectionResponse,
     HeadToHeadSelectionResponse,
     HeadToHeadTelemetryResponse,
@@ -136,4 +141,43 @@ def head_to_head_telemetry_dto_to_response(
         driver_b=driver_dto_to_response(dto.driver_b),
         lap_b=lap_dto_to_response(dto.lap_b),
         telemetry_b=[telemetry_point_dto_to_response(p) for p in dto.telemetry_b],
+    )
+
+
+def comparison_point_dto_to_response(
+    dto: ComparisonPointDTO,
+) -> ComparisonPointResponse:
+    return ComparisonPointResponse(
+        distance=dto.distance,
+        elapsed_time_a=dto.elapsed_time_a,
+        elapsed_time_b=dto.elapsed_time_b,
+        time_delta=dto.time_delta,
+        speed_a=dto.speed_a,
+        speed_b=dto.speed_b,
+        speed_delta=dto.speed_delta,
+        throttle_a=dto.throttle_a,
+        throttle_b=dto.throttle_b,
+        throttle_delta=dto.throttle_delta,
+        brake_a=dto.brake_a,
+        brake_b=dto.brake_b,
+        brake_delta=dto.brake_delta,
+        gear_a=dto.gear_a,
+        gear_b=dto.gear_b,
+    )
+
+
+def head_to_head_comparison_dto_to_response(
+    dto: HeadToHeadComparisonDTO,
+) -> HeadToHeadComparisonResponse:
+    return HeadToHeadComparisonResponse(
+        session=session_info_dto_to_response(dto.session),
+        driver_a=driver_dto_to_response(dto.driver_a),
+        lap_a=lap_dto_to_response(dto.lap_a),
+        driver_b=driver_dto_to_response(dto.driver_b),
+        lap_b=lap_dto_to_response(dto.lap_b),
+        summary=HeadToHeadComparisonSummaryResponse(
+            total_distance=dto.summary.total_distance,
+            total_time_delta=dto.summary.total_time_delta,
+        ),
+        points=[comparison_point_dto_to_response(p) for p in dto.points],
     )

@@ -3,32 +3,38 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from f1_telemetry_bff.application.dto.mappers import (
+    head_to_head_comparison_to_dto,
     head_to_head_lap_selection_to_dto,
     head_to_head_selection_to_dto,
     head_to_head_telemetry_to_dto,
 )
 from f1_telemetry_bff.application.exceptions import (
     DriverNotFoundError,
+    InsufficientTelemetryDataError,
     LapNotFoundError,
     SameDriverSelectedError,
     SessionNotFoundError,
 )
 from f1_telemetry_bff.application.use_cases import (
+    GetHeadToHeadComparisonUseCase,
     GetHeadToHeadTelemetryUseCase,
     SelectHeadToHeadDriversUseCase,
     SelectHeadToHeadLapsUseCase,
 )
 from f1_telemetry_bff.presentation.api.dependencies import (
+    get_get_head_to_head_comparison_use_case,
     get_get_head_to_head_telemetry_use_case,
     get_select_head_to_head_drivers_use_case,
     get_select_head_to_head_laps_use_case,
 )
 from f1_telemetry_bff.presentation.api.schemas import (
+    HeadToHeadComparisonResponse,
     HeadToHeadLapSelectionResponse,
     HeadToHeadSelectionResponse,
     HeadToHeadTelemetryResponse,
 )
 from f1_telemetry_bff.presentation.api.schemas.mappers import (
+    head_to_head_comparison_dto_to_response,
     head_to_head_lap_selection_dto_to_response,
     head_to_head_selection_dto_to_response,
     head_to_head_telemetry_dto_to_response,
@@ -233,3 +239,80 @@ async def get_head_to_head_telemetry(
 
     dto = head_to_head_telemetry_to_dto(telemetry)
     return head_to_head_telemetry_dto_to_response(dto)
+
+
+@router.get(
+    "/sessions/{session_key}/head-to-head/comparison",
+    response_model=HeadToHeadComparisonResponse,
+)
+async def get_head_to_head_comparison(
+    session_key: int,
+    driver_a: Annotated[
+        int,
+        Query(
+            description="Driver number for driver A",
+            alias="driver_a",
+        ),
+    ],
+    lap_a: Annotated[
+        int,
+        Query(
+            description="Lap number for driver A",
+            alias="lap_a",
+        ),
+    ],
+    driver_b: Annotated[
+        int,
+        Query(
+            description="Driver number for driver B",
+            alias="driver_b",
+        ),
+    ],
+    lap_b: Annotated[
+        int,
+        Query(
+            description="Lap number for driver B",
+            alias="lap_b",
+        ),
+    ],
+    use_case: Annotated[
+        GetHeadToHeadComparisonUseCase,
+        Depends(get_get_head_to_head_comparison_use_case),
+    ],
+) -> HeadToHeadComparisonResponse:
+    try:
+        comparison = await use_case.execute(
+            session_key=session_key,
+            driver_a_number=driver_a,
+            lap_a_number=lap_a,
+            driver_b_number=driver_b,
+            lap_b_number=lap_b,
+        )
+    except SessionNotFoundError as err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(err),
+        ) from err
+    except DriverNotFoundError as err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(err),
+        ) from err
+    except SameDriverSelectedError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(err),
+        ) from err
+    except LapNotFoundError as err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(err),
+        ) from err
+    except InsufficientTelemetryDataError as err:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(err),
+        ) from err
+
+    dto = head_to_head_comparison_to_dto(comparison)
+    return head_to_head_comparison_dto_to_response(dto)

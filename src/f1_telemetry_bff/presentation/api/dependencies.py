@@ -4,12 +4,16 @@ import httpx
 from fastapi import Depends, Request
 
 from f1_telemetry_bff.application.use_cases import (
+    GetHeadToHeadComparisonUseCase,
     GetHeadToHeadTelemetryUseCase,
     GetLapTelemetryUseCase,
     GetSessionDetailsUseCase,
     GetSessionLapsUseCase,
     SelectHeadToHeadDriversUseCase,
     SelectHeadToHeadLapsUseCase,
+)
+from f1_telemetry_bff.domain.services.lap_comparison_service import (
+    LapComparisonService,
 )
 from f1_telemetry_bff.infrastructure.openf1.client import OpenF1Client
 from f1_telemetry_bff.infrastructure.openf1.repository import (
@@ -88,4 +92,24 @@ def get_get_head_to_head_telemetry_use_case(
     return GetHeadToHeadTelemetryUseCase(
         select_laps_use_case=select_laps_use_case,
         telemetry_repository=telemetry_repository,
+    )
+
+
+def get_get_head_to_head_comparison_use_case(
+    client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+) -> GetHeadToHeadComparisonUseCase:
+    openf1_client = OpenF1Client(client)
+    session_repository = OpenF1SessionRepository(openf1_client)
+    telemetry_repository = OpenF1TelemetryRepository(openf1_client)
+
+    select_laps_use_case = SelectHeadToHeadLapsUseCase(
+        session_repository=session_repository,
+        telemetry_repository=telemetry_repository,
+    )
+    comparison_service = LapComparisonService()
+
+    return GetHeadToHeadComparisonUseCase(
+        select_laps_use_case=select_laps_use_case,
+        telemetry_repository=telemetry_repository,
+        comparison_service=comparison_service,
     )
